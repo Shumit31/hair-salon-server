@@ -27,10 +27,22 @@ async function run(){
 
     const bookingsCollection =client.db('hairSalon').collection('bookings');
 
-
+   //use aggrigate to query multiple collection and merge data
     app.get('/appointmentsection',async(req,res)=>{
+      const date=req.query.date;
         const query ={};
         const section = await appointmentsectionCollection.find(query).toArray();
+        const bookingQuery={appointmentDate:date
+        }
+        const alreadyBooked=await bookingsCollection.find(bookingQuery).toArray();
+
+        
+        section.forEach(sec=>{
+          const sectionBooked=alreadyBooked.filter(book=>book.service=== sec.name);
+          const bookedSlots = sectionBooked.map(book=>book.slot)
+          
+        })
+
         res.send(section);
 
     })
@@ -53,7 +65,7 @@ async function run(){
 
    app.post('/bookings',async(req,res)=>{
     const booking= req.body
-    console.log(booking);
+    
     const result = await bookingsCollection.insertOne(booking);
     res.send(result);
    })
