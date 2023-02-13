@@ -31,19 +31,27 @@ async function run(){
     app.get('/appointmentsection',async(req,res)=>{
       const date=req.query.date;
         const query ={};
-        const section = await appointmentsectionCollection.find(query).toArray();
+        const sections = await appointmentsectionCollection.find(query).toArray();
+
+        //get the bookings of the provided date
         const bookingQuery={appointmentDate:date
         }
         const alreadyBooked=await bookingsCollection.find(bookingQuery).toArray();
 
         
-        section.forEach(sec=>{
-          const sectionBooked=alreadyBooked.filter(book=>book.service=== sec.name);
-          const bookedSlots = sectionBooked.map(book=>book.slot)
+
+        //code carefully
+        sections.forEach(section=>{
+          const sectionBooked=alreadyBooked.filter(book=>book.service=== section.name);
+          const bookedSlots = sectionBooked.map(book=>book.slot);
+         
+          const remainingSlots=section.slots.filter(slot=>!bookedSlots.includes(slot));
+          section.slots=remainingSlots;
+          console.log(date,section.name,remainingSlots.length);
           
         })
 
-        res.send(section);
+        res.send(sections);
 
     })
 
@@ -65,7 +73,19 @@ async function run(){
 
    app.post('/bookings',async(req,res)=>{
     const booking= req.body
-    
+    const query ={
+      appointmentDate:booking.appointmentDate,
+      email:booking.email,
+      service: booking.service
+    }
+
+  const alreadyBooked = await bookingsCollection.find(query).toArray();
+
+  if(alreadyBooked.length){
+    const message= `You already have a appointment on ${booking.appointmentDate}`
+    return res.send({acknowledged:false,message})
+  }
+
     const result = await bookingsCollection.insertOne(booking);
     res.send(result);
    })
