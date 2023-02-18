@@ -50,6 +50,7 @@ async function run(){
 
     const bookingsCollection =client.db('hairSalon').collection('bookings');
     const usersCollection =client.db('hairSalon').collection('users');
+    const specialistsCollection =client.db('hairSalon').collection('specialists');
 
     
 
@@ -83,7 +84,11 @@ async function run(){
 
 
 
-
+ app.get('/appointmentSpeciality' ,async (req,res)=>{
+  const query ={}
+  const result = await appointmentsectionCollection.find(query).project({name:1}).toArray();
+  res.send(result);
+ })
 
 
   /***
@@ -146,9 +151,17 @@ app.get('/users',async(req,res)=>{
   const query = {};
   const users = await usersCollection.find(query).toArray();
   res.send(users);
+});
+
+
+
+app.get('/users/admin/:email', async(req,res)=>{
+  const email = req.params.email;
+  const query ={email}
+  const user = await usersCollection.findOne(query);
+  res.send({isAdmin: user?.role === 'admin'});
+
 })
-
-
 
 
 
@@ -185,6 +198,22 @@ app.put('/users/admin/:id',verifyJWT, async(req,res)=>{
   }
   const result = await usersCollection.updateOne(filter,updatedDoc,options);
   res.send(result);
+});
+
+app.get('/specialists', async(req,res)=>{
+  const query = {};
+  const specialist = await specialistsCollection.find(query).toArray();
+  res.send(specialist);
+
+})
+
+app.post('/specialists', async (req,res)=>{
+  const specialist = req.body;
+  const result = await specialistsCollection.insertOne(specialist);
+  res.send(result);
+
+
+ 
 })
 
  }
