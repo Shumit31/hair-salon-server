@@ -52,6 +52,19 @@ async function run(){
     const usersCollection =client.db('hairSalon').collection('users');
     const specialistsCollection =client.db('hairSalon').collection('specialists');
 
+
+      // NOTE: make sure you use verifyAdmin after verifyJWT
+      const verifyAdmin = async (req, res, next) =>{
+        const decodedEmail = req.decoded.email;
+        const query = { email: decodedEmail };
+        const user = await usersCollection.findOne(query);
+
+        if (user?.role !== 'admin') {
+            return res.status(403).send({ message: 'forbidden access' })
+        }
+        next();
+    }
+
     
 
    //use aggrigate to query multiple collection and merge data
@@ -177,17 +190,12 @@ app.get('/users/admin/:email', async(req,res)=>{
 });
 
 
-app.put('/users/admin/:id',verifyJWT, async(req,res)=>{
+app.put('/users/admin/:id',verifyJWT,verifyAdmin, async(req,res)=>{
 
 
   
   const decodedEmail = req.decoded.email;
-  const query = { email: decodedEmail };
-  const user = await usersCollection.findOne(query);
-
-  if (user?.role !== 'admin') {
-      return res.status(403).send({ message: 'forbidden access' })
-  }
+ 
   const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
             const options = { upsert: true };
@@ -200,21 +208,28 @@ app.put('/users/admin/:id',verifyJWT, async(req,res)=>{
   res.send(result);
 });
 
-app.get('/specialists', async(req,res)=>{
+app.get('/specialists',verifyJWT, verifyAdmin, async(req,res)=>{
   const query = {};
   const specialist = await specialistsCollection.find(query).toArray();
   res.send(specialist);
 
 })
 
-app.post('/specialists', async (req,res)=>{
+app.post('/specialists', verifyJWT,verifyAdmin, async (req,res)=>{
   const specialist = req.body;
   const result = await specialistsCollection.insertOne(specialist);
   res.send(result);
-
-
+  
+ 
  
 })
+app.delete('/specialists/:id',verifyJWT,verifyAdmin, async(req,res)=>{
+  const id = req.params.id;
+  const filter = {_id:new ObjectId(id)};
+  const result = await specialistsCollection.deleteOne(filter);
+  res.send(result);
+   })
+ 
 
  }
  finally{
